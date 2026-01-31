@@ -16,7 +16,7 @@ public:
     cpu();
     ~cpu();
 
-    enum FLAGS6502
+    enum CPU_FLAGS
     {
         C = (1 << 0), // carry bit
 		Z = (1 << 1), // zero
@@ -37,8 +37,45 @@ public:
 
     void ConnectBus(Bus *n) { bus = n; }
 
+    void clock();
+    void reset();
+    void irq();
+    void nmi();
+
+	bool complete();
+
+	std::map<uint16_t, std::string> disassemble(uint16_t nStart, uint16_t nStop);
+
+private:
+	uint8_t fetched = 0x00;
+	uint16_t temp = 0x0000;
+	uint16_t addr_abs = 0x0000;
+	uint16_t addr_rel = 0x00;
+	uint8_t opcode = 0x00;
+	uint8_t cycles = 0;
+	uint32_t clock_count = 0;
+
+    Bus *bus = nullptr;
+    uint8_t read(uint16_t address);
+    void write(uint16_t address, uint8_t data);
+
+	uint8_t fetch();
+
+    uint8_t GetFlag(CPU_FLAGS f);
+	void SetFlag(CPU_FLAGS f, bool v);
+
+    struct INSTRUCTION
+    {
+        std::string name;
+        uint8_t(cpu::*operate)(void) = nullptr;
+        uint8_t(cpu::*addrmode)(void) = nullptr;
+        uint8_t cycles = 0;
+    };
+
+    std::vector<INSTRUCTION> lookup;
+
 	// addressing modes
-    uint8_t IMP();	uint8_t IMM();
+	uint8_t IMP();	uint8_t IMM();
 	uint8_t ZP0();	uint8_t ZPX();
 	uint8_t ZPY();	uint8_t REL();
 	uint8_t ABS();	uint8_t ABX();
@@ -46,7 +83,7 @@ public:
 	uint8_t IZX();	uint8_t IZY();
 
 	// opcodes
-    uint8_t ADC();	uint8_t AND();	uint8_t ASL();	uint8_t BCC();
+	uint8_t ADC();	uint8_t AND();	uint8_t ASL();	uint8_t BCC();
 	uint8_t BCS();	uint8_t BEQ();	uint8_t BIT();	uint8_t BMI();
 	uint8_t BNE();	uint8_t BPL();	uint8_t BRK();	uint8_t BVC();
 	uint8_t BVS();	uint8_t CLC();	uint8_t CLD();	uint8_t CLI();
@@ -61,36 +98,10 @@ public:
 	uint8_t STX();	uint8_t STY();	uint8_t TAX();	uint8_t TAY();
 	uint8_t TSX();	uint8_t TXA();	uint8_t TXS();	uint8_t TYA();
 
-    uint8_t XXX();
+	uint8_t XXX();
 
-    void clock();
-    void reset();
-    void irq();
-    void nmi();
-
-    uint8_t fetch();
-    uint8_t fetched = 0x00;
-
-    uint16_t addr_abs = 0x0000;
-    uint16_t addr_rel = 0x00;
-    uint8_t opcode = 0x00;
-    uint8_t cycles = 0;
-
+#ifdef LOGMODE
 private:
-    Bus *bus = nullptr;
-    uint8_t read(uint16_t address);
-    void write(uint16_t address, uint8_t data);
-
-    uint8_t GetFlag(FLAGS6502 f);
-	void    SetFlag(FLAGS6502 f, bool v);
-
-    struct INSTRUCTION
-    {
-        std::string name;
-        uint8_t(cpu::*operate)(void) = nullptr;
-        uint8_t(cpu::*addrmode)(void) = nullptr;
-        uint8_t cycles = 0;
-    };
-
-    std::vector<INSTRUCTION> lookup;
+	FILE* logfile = nullptr;
+#endif
 };
